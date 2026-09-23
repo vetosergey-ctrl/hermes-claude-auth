@@ -1834,7 +1834,10 @@ def _rl_wrap_call(original_method):
     """Wrap an AIAgent API-call method with subscription rate-limit auto-wait."""
 
     def wrapper(self, *args: Any, **kwargs: Any):
-        if not _rl_autowait_enabled():
+        # Claude-subscription windows only: a 429 from another provider
+        # (openai-codex usage cap, openrouter, ...) must reach Hermes core so
+        # fallback_providers engage instead of a blind 5-minute sleep loop.
+        if not _rl_autowait_enabled() or getattr(self, "provider", None) != "anthropic":
             return original_method(self, *args, **kwargs)
         attempt = 0
         while True:
